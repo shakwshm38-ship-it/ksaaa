@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عالم التفضيلات الشخصية</title>
+    <!-- مكتبة القصاصات الملونة -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- خط تجوال من جوجل -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- أيقونات FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-accent: #6C5CE7;
+            --secondary-accent: #00CEC9;
+            --bg-color: #0F172A;
+            --card-bg: rgba(30, 41, 59, 0.65);
+            --border-color: rgba(255, 255, 255, 0.12);
+            --text-color: #F8FAFC;
+            --text-sub: #94A3B8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at top right, #1E1B4B, #0F172A, #020617);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 12px;
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        /* --- 1. شاشة الترحيب --- */
+        #introScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #020617;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.8s ease, visibility 0.8s;
+        }
+
+        .light-beam {
+            position: absolute;
+            top: 50%;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--secondary-accent), var(--primary-accent), transparent);
+            box-shadow: 0 0 20px var(--secondary-accent);
+            animation: beamPass 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes beamPass {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .typing-container {
+            font-size: 26px;
+            font-weight: 700;
+            min-height: 50px;
+            text-align: center;
+            color: var(--text-color);
+            text-shadow: 0 0 15px rgba(108, 92, 231, 0.4);
+            margin-bottom: 30px;
+            padding: 0 20px;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 3px;
+            height: 28px;
+            background-color: var(--secondary-accent);
+            margin-right: 5px;
+            animation: blink 0.8s infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .start-btn {
+            padding: 14px 42px;
+            background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+            border: none;
+            border-radius: 50px;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+            box-shadow: 0 8px 25px rgba(108, 92, 231, 0.35);
+        }
+
+        .start-btn.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .start-btn:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 12px 30px rgba(0, 206, 201, 0.45);
+        }
+
+        /* --- 2. شاشة إدخال الاسم --- */
+        #nameScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 900;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #nameScreen.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* --- 3. البطاقات والتخطيط --- */
+        .container {
+            display: flex;
+            flex-direction: row-reverse;
+            gap: 20px;
+            max-width: 1100px;
+            width: 100%;
+            z-index: 10;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .container.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        /* البروفايل الجانبي */
+        .profile-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            height: fit-content;
+        }
+
+        .avatar {
+            width: 85px;
+            height: 85px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 38px;
+            box-shadow: 0 10px 25px rgba(108, 92, 231, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 12px;
+        }
+
+        .profile-name {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 4px;
+            color: var(--text-color);
+        }
+
+        .badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 14px;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            color: var(--text-sub);
+            border: 1px solid var(--border-color);
+        }
+
+        /* قسم الأسئلة والاقتراحات */
+        .form-section {
+            flex: 1.8;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .input-block {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-block.full-width {
+            grid-column: span 2;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group i {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-sub);
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px 38px 10px 12px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-color);
+            font-size: 13.5px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            border-color: var(--secondary-accent);
+            box-shadow: 0 0 12px rgba(0, 206, 201, 0.2);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        /* أزرار الاقتراحات السريعة */
+        .quick-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .suggestion-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-sub);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .suggestion-btn:hover {
+            background: var(--primary-accent);
+            color: #fff;
+            border-color: var(--primary-accent);
+        }
+
+        .submit-btn {
+            grid-column: span 2;
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            box-shadow: 0 8px 20px rgba(108, 92, 231, 0.3);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(0, 206, 201, 0.4);
+        }
+
+        /* بطاقة النتيجة */
+        #resultCard {
+            grid-column: span 2;
+            margin-top: 15px;
+            padding: 18px;
+            background: rgba(0, 206, 201, 0.05);
+            border: 1px solid rgba(0, 206, 201, 0.2);
+            border-radius: 14px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12.5px;
+            background: rgba(15, 23, 42, 0.5);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .result-val {
+            color: var(--secondary-accent);
+            font-weight: 700;
+        }
+
+        /* التجاوب مع الجوالات */
+        @media (max-width: 768px) {
+            .container { 
+                flex-direction: column !important; 
+            }
+            .form-grid, .result-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .input-block.full-width, .submit-btn, #resultCard {
+                grid-column: span 1 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. شاشة الترحيب -->
+    <div id="introScreen">
+        <div class="light-beam"></div>
+        <div class="typing-container">
+            <span id="typedText"></span><span class="cursor"></span>
+        </div>
+        <button class="start-btn" id="startBtn" onclick="goToNameScreen()">ابدأ التجربة ✨</button>
+    </div>
+
+    <!-- 2. شاشة إدخال الاسم -->
+    <div id="nameScreen">
+        <div class="glass-card" style="max-width: 360px; width: 90%; text-align: center;">
+            <h2 style="margin-bottom: 18px; font-size: 19px; font-weight: 700;">ما اسمك المفضل؟ 👤</h2>
+            <div class="input-group" style="margin-bottom: 16px;">
+                <input type="text" id="usernameInput" placeholder="أدخل اسمك هنا...">
+                <i class="fa-solid fa-user"></i>
+            </div>
+            <button class="submit-btn" style="grid-column: span 1;" onclick="saveNameAndStart()">متابعة ➡️</button>
+        </div>
+    </div>
+
+    <!-- 3. لوحة التحكم والخيارات العشرة -->
+    <div class="container" id="mainContainer">
+        
+        <!-- البروفايل الجانبي -->
+        <div class="glass-card profile-section">
+            <div class="avatar">👑</div>
+            <h1 class="profile-name" id="displayProfileName">شيخه</h1>
+            <p style="color: var(--text-sub); font-size: 13px;">عالم التفضيلات والخيارات الشخصية</p>
+
+            <div class="badges">
+                <span class="badge"><i class="fa-solid fa-user-tag"></i> الأشخاص</span>
+                <span class="badge"><i class="fa-solid fa-gamepad"></i> الألعاب</span>
+                <span class="badge"><i class="fa-solid fa-car"></i> السيارات</span>
+                <span class="badge"><i class="fa-solid fa-utensils"></i> الأكلات</span>
+                <span class="badge"><i class="fa-solid fa-palette"></i> الألوان</span>
+                <span class="badge"><i class="fa-solid fa-futbol"></i> الهوايات</span>
+                <span class="badge"><i class="fa-solid fa-plane"></i> السفر</span>
+                <span class="badge"><i class="fa-solid fa-film"></i> الأفلام</span>
+            </div>
+        </div>
+
+        <!-- نماذج التفضيلات والافتراضات -->
+        <div class="glass-card form-section">
+            <h2 class="form-title"><i class="fa-solid fa-sliders" style="color: var(--secondary-accent);"></i> حدد تفضيلاتك (10 خيارات)</h2>
+
+            <div class="form-grid">
+                
+                <!-- 1. الشخص المفضل -->
+                <div class="input-block full-width">
+                    <div class="input-group">
+                        <input type="text" id="favPerson" placeholder="1. الشخص المفضل...">
+                        <i class="fa-solid fa-user-tag"></i>
+                    </div>
+                    <div class="quick-suggestions">
+                      
+                    </div>
+                </div>
+
+                <!-- 2. اللعبة المفضلة -->
+                <div class="input-block">
+                    <div class="input-group">
+                        <input type="text" id="favGame" placeholder="2. اللعبة المفضلة...">
+                        <i class="fa-solid fa-gamepad"></i>
+                    </div>
+                    <div class="quick-suggestions">
+                        <button class="suggestion-btn" onclick="setVal('favGame', 'قراند GTA')">GTA V</button>
+                        <button class="suggestion-btn" onclick="setVal('favGame', 'رست Rust')">Rust</button>
+                        <button class="suggestion-btn" onclick="setVal('favGame', 'ماينكرافت')">Minecraft</button>
+                        <button class="suggestion-btn" onclick="setVal('favGame', 'فورتنايت')">Fortnite</button>
+                    </div>
+                </div>
+
+                <!-- 3. السيارة المفضلة -->
+                <div class="input-block">
+                    <div class="input-group">
+                        <input type="text" id="favCar" placeholder="3. السيارة المفضلة...">
+                        <i class="fa-solid fa-car"></i>
+                    </div>
+                    <div class="quick-suggestions">
+                        <button class="suggestion-btn" onclick="setVal('favCar', 'لكزس')">لكزس</button>
+                        <button class="suggestion-btn" onclick="setVal('favCar', 'مرسيدس G-Class')">G-Class</button>
+                        <button class="suggestion-btn" onclick="setVal('favCar', 'باترول')">باترول</button>
+                        <button class="suggestion-btn" onclick="setVal('favCar', 'كامري')">كامري</button>
+                    </div>
+                </div>
+
+                <!-- 4. الأكل المفضل -->
+                <div class="input-block">
+                    <div class="input-group">
+                        <input type="text" id="favFood" placeholder="4. الأكل المفضل...">
+                        <i class="fa-solid fa-utensils"></i>
+                    </div>
+                    <div class="quick-suggestions">
+                        <button class="suggestion-btn" onclick="setVal('favFood', 'شاورما')">شاورما</button>
+                        <button class="suggestion-btn" onclick="setVal('favFood', 'برجر')">برجر</button>
+                        <button class="suggestion-btn" onclick="setVal('favFood', 'بيتزا')">بيتزا</button>
+                        <button class="suggestion-btn" onclick="setVal('favFood', 'كبسة')">كبسة</button>
+                    </div>
+                </div>
+
+                <!-- 5. اللون المفضل -->
+                <div class="input-block">
+                    <div class="input-group">
+                        <input type="text" id="favColor" placeholder="5. اللون المفضل...">
+                        <i class="fa-solid fa-palette"></i>
+                    </div>
+                    <div class="quick-suggestions">
+                        <button class="suggestion-btn" onclick="setVal('favColor', 'أزرق كحلي')">كحلي</button>
+                        <button class="suggestion-btn" onclick="setVal('favColor', 'أسود')">أسود</button>
+                        <button class="suggestion-btn" onclick="setVal('favColor', 'نيلي')">نيلي</button>
+                        <button class="suggestion-btn" onclick="setVal('favColor', 'بنفسجي')">بنفسجي</button>
+                    </div>
+                </div>
+
+                <!-- 6. الهواية المفضلة -->
+                <div class="input-block">
+                    <div class="input-group">
+                        <input type="text" id="favHobby" placeholder="6. الهواية المفضلة...">
+                        <i class="fa-solid fa-futbol"></i>
+                    </div>
+                    <div class="quick-suggestions">
+                        <button class="suggestion-btn" onclick="setVal('favHobby', 'الألعاب والجيمنج')">جيمنج</button>
+                        <button class="suggestion-btn" onclick="setVal('favHobby', 'العزف والموسيقى')">العزف</button>
+                        <button class="suggestion-btn" onclick="setVal('favHobby', 'كرة القدم')">كرة قدم</button>
+                        <button class="suggestion-btn" onclick="setVal('favHobby', 'البرمجة')">برمجة</button>
+                    </div>
+                </div>
+
+                <!-- 7. المشروب المفضل -->
+                <div class="input-block">
+                    <div class="input-group">
+                        <input type="text" id="favDrink" placeholder="7. المشروب المفضل...">
+                        <i class="fa-solid fa-glass-water"></i>
+                    </div>
+                    <div class="quick-suggestions">
+                        <button class="suggestion-btn" onclick="setVal('favDrink', 'سبانشلاتيه')">لاتيه</button>
+                        <button class="suggestion-btn" onclick="setVal('favDrink', 'موهيتو')">موهيتو</button>
+                        <button class="suggestion-btn" onclick="setVal('favDrink', 'شاهي')">شاهي</button>
+                        <button class="suggestion-btn" onclick="setVal('favDrink', 'بيبسي بارد')">بيبسي</button>
+                    </div>
+                </div>
+
+                <!-- 8. المكان المفضل -->
+                <div class="input-block">
+                    <div class="input-group">
+                        <input type="text" id="favPlace" placeholder="8. الدولة/المدينة المفضلة...">
+                        <i class="fa-solid fa-plane"></i>
+                    </div>
+                    <div class="quick-suggestions">
+                        <button class="suggestion-btn" onclick="setVal('favPlace', 'الرياض')">الرياض</button>
+                        <button class="suggestion-btn" onclick="setVal('favPlace', 'مكة المكرمة')">مكة</button>
+                        <button class="suggestion-btn" onclick="setVal('favPlace', 'القاهرة')">القاهرة</button>
+                        <button class="suggestion-btn" onclick="setVal('favPlace', 'دبي')">دبي</button>
+                    </div>
+                </div>
+
+                <!-- 9. الفيلم / المسلسل المفضل -->
+                <div class="input-block">
+                    <div class="input-group">
+                        <input type="text" id="favMovie" placeholder="9. الفيلم/المسلسل المفضل...">
+                        <i class="fa-solid fa-film"></i>
+                    </div>
+                    <div class="quick-suggestions">
+                        <button class="suggestion-btn" onclick="setVal('favMovie', 'Interstellar')">Interstellar</button>
+                        <button class="suggestion-btn" onclick="setVal('favMovie', 'Peaky Blinders')">Peaky Blinders</button>
+                        <button class="suggestion-btn" onclick="setVal('favMovie', 'أنمي')">أنمي</button>
+                    </div>
+                </div>
+
+                <!-- 10. أفضل وقت باليوم -->
+                <div class="input-block full-width">
+                    <div class="input-group">
+                        <input type="text" id="favTime" placeholder="10. أفضل وقت باليوم...">
+                        <i class="fa-solid fa-moon"></i>
+                    </div>
+                    <div class="quick-suggestions">
+                        <button class="suggestion-btn" onclick="setVal('favTime', 'الليل المتأخر 🌙')">الليل المتأخر 🌙</button>
+                        <button class="suggestion-btn" onclick="setVal('favTime', 'وقت الغروب 🌅')">وقت الغروب 🌅</button>
+                        <button class="suggestion-btn" onclick="setVal('favTime', 'الصباح الباكر ☀️')">الصباح الباكر ☀️</button>
+                    </div>
+                </div>
+
+                <button class="submit-btn" onclick="submitAll()">تأكيد وإظهار النتيجة 🎉</button>
+
+                <!-- بطاقة إظهار النتيجة -->
+                <div id="resultCard">
+                    <div class="result-grid">
+                        <div class="result-item"><span>👤 الشخص:</span><span class="result-val" id="resPerson">-</span></div>
+                        <div class="result-item"><span>🎮 اللعبة:</span><span class="result-val" id="resGame">-</span></div>
+                        <div class="result-item"><span>🏎️ السيارة:</span><span class="result-val" id="resCar">-</span></div>
+                        <div class="result-item"><span>🍕 الأكل:</span><span class="result-val" id="resFood">-</span></div>
+                        <div class="result-item"><span>🎨 اللون:</span><span class="result-val" id="resColor">-</span></div>
+                        <div class="result-item"><span>⚽ الهواية:</span><span class="result-val" id="resHobby">-</span></div>
+                        <div class="result-item"><span>🧋 المشروب:</span><span class="result-val" id="resDrink">-</span></div>
+                        <div class="result-item"><span>✈️ المكان:</span><span class="result-val" id="resPlace">-</span></div>
+                        <div class="result-item"><span>🎬 الفيلم:</span><span class="result-val" id="resMovie">-</span></div>
+                        <div class="result-item"><span>🌙 الوقت:</span><span class="result-val" id="resTime">-</span></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- النص الترحيبي المعدل ---
+        const welcomeText = "يا هلا منوره يا شيخه ام الموقع ✨";
+
+        // --- نظام الصوت الناعم ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSoftTone(freq, type = 'sine', duration = 0.08) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playTypeSound() {
+            playSoftTone(520, 'sine', 0.04);
+        }
+
+        function playBtnSound() {
+            playSoftTone(640, 'triangle', 0.1);
+        }
+
+        function playCelebrateSound() {
+            const notes = [440, 554.37, 659.25, 880];
+            notes.forEach((freq, i) => {
+                setTimeout(() => {
+                    playSoftTone(freq, 'sine', 0.25);
+                }, i * 100);
+            });
+        }
+
+        function setVal(id, val) {
+            playTypeSound();
+            document.getElementById(id).value = val;
+        }
+
+        // --- تأثير كتابة النص الترحيبي ---
+        const typedTextElement = document.getElementById('typedText');
+        const startBtn = document.getElementById('startBtn');
+        let index = 0;
+
+        function typeWriter() {
+            if (index < welcomeText.length) {
+                typedTextElement.innerHTML += welcomeText.charAt(index);
+                playTypeSound();
+                index++;
+                setTimeout(typeWriter, 75);
+            } else {
+                startBtn.classList.add('show');
+            }
+        }
+
+        window.onload = () => {
+            setTimeout(typeWriter, 800);
+        };
+
+        function goToNameScreen() {
+            playBtnSound();
+            const intro = document.getElementById('introScreen');
+            intro.style.opacity = '0';
+            setTimeout(() => {
+                intro.style.display = 'none';
+                document.getElementById('nameScreen').classList.add('active');
+            }, 800);
+        }
+
+        function saveNameAndStart() {
+            const name = document.getElementById('usernameInput').value.trim();
+            if (!name) {
+                alert("الرجاء إدخال اسمك أولاً!");
+                return;
+            }
+            playBtnSound();
+            document.getElementById('displayProfileName').innerText = name;
+            
+            const nameScreen = document.getElementById('nameScreen');
+            nameScreen.classList.remove('active');
+            
+            setTimeout(() => {
+                document.getElementById('mainContainer').classList.add('show');
+            }, 300);
+        }
+
+        function submitAll() {
+            const fields = [
+                'favPerson', 'favGame', 'favCar', 'favFood', 'favColor',
+                'favHobby', 'favDrink', 'favPlace', 'favMovie', 'favTime'
+            ];
+
+            let allFilled = true;
+            fields.forEach(id => {
+                if (!document.getElementById(id).value.trim()) allFilled = false;
+            });
+
+            if (!allFilled) {
+                alert("الرجاء تعبئة جميع الخانات العشرة!");
+                return;
+            }
+
+            playCelebrateSound();
+
+            document.getElementById('resPerson').innerText = document.getElementById('favPerson').value;
+            document.getElementById('resGame').innerText = document.getElementById('favGame').value;
+            document.getElementById('resCar').innerText = document.getElementById('favCar').value;
+            document.getElementById('resFood').innerText = document.getElementById('favFood').value;
+            document.getElementById('resColor').innerText = document.getElementById('favColor').value;
+            document.getElementById('resHobby').innerText = document.getElementById('favHobby').value;
+            document.getElementById('resDrink').innerText = document.getElementById('favDrink').value;
+            document.getElementById('resPlace').innerText = document.getElementById('favPlace').value;
+            document.getElementById('resMovie').innerText = document.getElementById('favMovie').value;
+            document.getElementById('resTime').innerText = document.getElementById('favTime').value;
+
+            document.getElementById('resultCard').style.display = 'block';
+
+            var duration = 2.5 * 1000;
+            var end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 5,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 }
+                });
+                confetti({
+                    particleCount: 5,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 }
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+    </script>
+</body>
+</html>
